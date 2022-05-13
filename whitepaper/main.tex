@@ -19,95 +19,84 @@
 
 \begin{abstract}
 
-Gambleswap is a Constant Product Automated Market Making protocol. Liquidity providers will be given \$GMB as a form of passive income and may enter into a gambling game to bet with their \$GMBs. 
+Gambleswap is a gambling powered Constant Product Automated Market Making protocol. Liquidity providers will be given \$GMB as a form of passive income and may enter into a gambling game to bet with their \$GMBs. Liquidity providers also can lend their LP tokens to those who do not have enough LP tokens for participating in the gambling game, thus, unlocking leveraging the value locked in liquidity pools even more. 
 The chance of winning in the game is proportional to the \$GMBs each user has put in the game. Also, it's designed to have the ability to control the total supply and price of \$GMB.
 
 \end{abstract}
+
 \section{Decentralized Exchange}
 As a fork of Uniswap, Gambleswap is, in its core, a decentralized liquidity pool based exchange. Liquidity pools contain a huge amounts of two different assets like $aToken$ and $bToken$. 
-Users can use these pools to swap their $aTokens$ with $bTokens$ or vice versa. They deposit one token and take a a certain amount of the other token. The ratio between the amount of token a user deposits and the amount of the token they take out is calculated through an Automated Market Maker (AMM) which will be discussed more later.
-Liquidity providers are users who deposit both tokens into the pool. As a reward they receive Liquidity Provider (LP) tokens. In Gambleswap, in addition to LP tokens, they also receive \$GMB. These tokens can be used to participate in the gambling. 
-\section{Automated Market Maker}
-As mentioned before there are two tokens in each liquidity pool in an AMM-based exchange. The ratio between the amount of one token a user takes out and the amount of the other token the user endows, are calculated using a formula. The purpose of the formula is to make sure the exchanges that happen in the pool do not impose a massive impact on the prices of the two tokens and the prices remain as stable as possible. Hence, the slippage of the pools remain low. 
-The formula basically tries to keep the product of the amounts of the two tokens at a constant value $k$.
-Assume the amounts of the tokens are $R_a$ and $R_b$ before the swap. A user can deposit $x$ tokens of $R_a$ in the pool and take $y$ tokens of $R_b$ out. 
-A small portion of $x$ is taken as a fee. This fee is divided between all liquidity providers proportional to their share in the pool. The fee ratio is shown by $\mu$. Now, because the product of the two tokens amounts should remain equal to $k$, we can calculate $y$ like this:
-
-\begin{align*}
-    R_a R_b &= (R_a + (1 - \mu)x)(R_b - y) \\
-    \to (1 - \mu)xR_b &= (1 - \mu)xy + yR_1 \\
-    \to y &= R_b - \frac{R_aR_b}{R_a + (1 - \mu)x}
-\end{align*}
-
+Users can use these pools to swap their $aTokens$ with $bTokens$ or vice versa. The ratio between the amount of token a user deposits and the amount of the token they take out is calculated through an Automated Market Maker (AMM) which will be discussed more later (For more details, see Appendix~\ref{app:amm}).
+In Gambleswap, in addition to LP tokens, they also receive \$GMB. These tokens can be used to participate in the gambling and later moderating the Gambleswap ecosystem.
 
 \section{Tokenomics}
 
-The new ERC20 token that we define and use in gambleswap, is called GMB. 
+Gambleswap has introduced GMB as the main token for particpation to empower its underlying automated market maker. 
 LP token holders will receive \$GMB as rewards. Later, they can use them to participate in the gambling.
 
 \subsection{Mint GMB}
 
-A fixed number of \$GMB is minted in each block. Each liquidity provider will receive a fraction of these tokens which is proportional to the amount of their LP tokens. In order to get these \$GMBs, the user needs to claim them. When a user $u$ claims that they should receive GMB tokens, we calculate the number of blocks that have been mined after their last claim and then find out their GMB tokens as follows:
+A fixed number of \$GMB is minted in each block. Each liquidity provider will receive a fraction of these tokens which is proportional to the amount of their LP tokens. In order to get these \$GMBs, the user needs to claim them. When a user $u$ claims that they should receive GMB tokens, the contract calculates the effective number of LP tokens that the user has and then find out their available number of GMB tokens to be minted. Effective LP tokens includes the amount of LP tokens that user holds at the time of calling claim, plus what he already has locked in the gambling game of the last recent 10 rounds, plus what he has lent:
 
 $$
 \text{ number of GMB tokens } u \text{ gets in a claim} =
 $$
 $$
-\text{ number of blocks since } u \text{'s last claim}
+\text{ GMB to mint per LP token }
 $$
 $$
-\times \text{ number of GMB tokens minted every block}
+\times \text{ effective number of LP tokens for the user} u
 $$
-$$\times (\frac{\text{number of } u \text{'s LP tokens}}{\text{total LP tokens}})
 $$
+- \text{ number of all the GMB tokens that } u \text{ minted so far}
+$$
+
+% $$\times (\frac{\text{number of } u \text{'s LP tokens}}{\text{total LP tokens}})
+% $$
 
 To make it easier for the users to receive their \$GMB, the pool contract automatically claims these tokens for them whenever they update their LP token value, i.e. when they deposit liquidity to or withdraw liquidity from the pool.
 
 
 \subsection{Burn GMB}
-To be able to control the price and value of \$GMB, we designed a process to burn some of the minted tokens on a regularly basis. We will discuss it in more details in the following sections.
+To be able to control the supply of \$GMB, the gambling game designed to burns some of the minted tokens on a regularly basis. We will discuss it in more details in the following sections.
 
 \section{Gambling Game}
-The gambling game is the powerful core of the enhancements added to the central uniswap logic. The rules of the game can be basically listed as follows:
+The gambling game is the powerful core of the enhancements added to Gambleswap's AMM logic. The rules of the game can be basically listed as follows:
 \begin{itemize}
     \item Participants send their GMB tokens into the gambling contract. These tokens are accumulated to form our jackpot. They also send their bet values, which is a number they have guessed within a particular interval.
+    \item Participants need to either own some LP tokens of the certain set of liquidity pools (called authorised pools) or borrow them from the LP lending pool to be able to play the game. Their LP tokens are locked during the game, and afterward, they can unlock them regardless of whether they win or lose. This rule intends to motivate users to provide liquidity in our pools.
     \item A random number is generated using some properties of the block like block number, block difficulty, and block timestamp.
-    \item If the number a user has bet on, falls inside a certain distance from the randomly generated number, that user is one of the winners of the game. This distance gets larger depending on the amount of GMB tokens they have deposited into the jackpot.
-    \item 25 percent of the jackpot is burnt in each game. This is done in order to control the GMB total supply.
-    \item If a game doesn't have any winners, the jackpot's contents remain in the jackpot and will be used in the next round. This gives motivation to users to participate in the game if they see there is non-empty jackpot before they start the game. Therefore, the number of participants can grow substantially. 
-    \item Every fourth game, all the value in the jackpot gets burnt.
-    \item Participants need to own some LP tokens to be able to play in the game. We lock their LP tokens during the game. This rule intends to motivate users to provide liquidity in our pools.
-    \item After the game is over, users who have won, can claim their rewards and unlock their LP tokens. 
-    \item Logs of all the past games are kept in our contract, so that users can claim any time they like.
-    \item The maximum chance of winning is 50 percent. It means if a player owns all the \$GMBs in the jackpot, she or he has a maximum 50 percent chance of winning. 
+    \item If the number a user has bet on falls inside a certain distance from the randomly generated number, that user is one of the winners of the game. This distance gets larger depending on the amount of GMB tokens they have deposited into the jackpot.
+    \item 25\% of the jackpot of each round, and all the accumulated GMBs after every fourth game will be burnt. This is done in order to control the GMB total supply. 
+    \item If a game doesn't have any winners, the jackpot's contents remain in the jackpot and will be used in the next round. This motivates users to participate in the game if they see there is a non-empty jackpot before they start the game. Therefore, the number of participants can grow substantially.
+    \item The maximum chance of winning is 50\%. It means if a player owns all the \$GMBs in the jackpot, they have a maximum 50\% chance of winning. 
 \end{itemize}
 
 \subsection{Determining winners}
-We introduce a variable as $coveragePerGMB$. This value demonstrates the length of the interval that each GMB token covers. Participants can increase their coverage by having more GMBs in the game. The value $UserCoverage$ shows the maximum distance the user's bet value can have with the correct random number for the user to win. The greater this value, the more chance the user has for winning. This value is calculated as follows. 
+We introduce a variable as $coveragePerGMB$. This value demonstrates the length of the interval that each GMB token covers. Participants can increase their coverage by having more GMBs in the game. User's coverage shows the maximum distance the user's bet value can have with the correct random number for the user to win. The greater this value, the more chance the user has for winning. This value is calculated as follows. 
 
 \begin{align*}
     \text{user's coverage} &= min( \frac{1}{4} \times \text{maximum random number}, \\
-    &\text{coveragePerGMB} \times \text{user's GMB tokens})
+    &coveragePerGMB \times \text{user's GMB tokens})
 \end{align*}
 
 the $\frac{1}{4} \times \text{maximum random number}$ is there to bound the maximum chance of winning to 50 percent.
 
-
-The coveragePerGMB's value in each round is calculated based on the value of the jackpot in the previous game. For the first game we assume the coveragePerGMB value is 10, and for games after that we have:
-$$
-\text{ coveragePerGMB } = \frac{\text{maximum random number}}{\text{4}
-\times \text{total jackpot of the previous game}}
-$$
-
-
-The coveragePerGMB is a dynamic value depending on the previous game. In each game, this value is the same for all users. Users have more chance to win by putting more GMB in the jackpot; each user wins if their bet value falls inside this interval:
+Users have more chance to win by putting more GMB in the jackpot; each user wins if their bet value falls inside this interval:
 $$
 (\text{correct random number} - \text{user's coverage},$$
 $$
 \text{correct random number} + \text{user's coverage})
 $$
 
+The $coveragePerGMB$ value in each round is calculated based on the value of the jackpot in the previous game. For the first game, we assume the coveragePerGMB value is 10, and for games after that, we have:
+$$
+coveragePerGMB = \frac{\text{maximum random number}}{\text{4}
+\times \text{total jackpot of the previous game}}
+$$
 
+
+In the other words the coveragePerGMB is a dynamic value depending on the previous game. In each game, this value is the same for all users. 
 If the number of participants in one game is small, the chance of winning in the next game goes higher; Consequently, more users are encouraged to participate in the next round. Figure \ref{fig:coverage} illustrates the process of determining the winners.
 
 
@@ -117,6 +106,16 @@ If the number of participants in one game is small, the chance of winning in the
     \caption{The blue interval shows the entire interval the random number can fall into. If the random number falls into the user's coverage, user will be one of the winners.}
     \label{fig:coverage}
 \end{figure}
+
+\subsection{LP Lending}
+Gambleswap introduces users a LP lending protocol to participate in gambling game without the need to provide liquidity. There are two user's types in this lending protocol:
+\begin{itemize}
+    \item Lenders: Users who have LPs can lend their tokens from different pools; In return, after each round of the game, they will be given interest per borrow in form of GMB tokens.
+    \item Borrowers: Users who do not have any LP tokens and can participate in each round of the game by borrowing lenders LP tokens. In return, they have to pay the interest to the lenders.
+\end{itemize}
+
+Each round of the game has its own capacity on the lending contract, and after each round, the capacity will be released for the upcoming round of the game. Every authorised liquidity pool has a separate lending pool and interest per borrow. Whenever a user attempts to borrow LP token, the lending contract finds the cheapest available pool which has enough capacity, and lends the needed amount of LP token to the user.
+Lenders share the accumulated interest of their corresponding pool proportional to their share of the lending pool.
 
 \subsection{Overflow/Underflow in the interval}
 The generated interval for each user may exceed the $Maximum Random Number$ or may become less than $zero$. There are three scenarios for an interval:
@@ -161,15 +160,6 @@ The generated interval for each user may exceed the $Maximum Random Number$ or m
     \label{fig:overflow}
 \end{figure}
 
-\subsection{Generating random number}
-The random number in each game is calculated with a formula that considers these variables:
-\begin{itemize}
-    \item Block Timestamp
-    \item Block Difficulty
-    \item Block Number
-    \item Admin address
-\end{itemize}
-
 \subsection{Expected value of net profit}
 
 Let's assume user $u_i$ deposits $a_i$ GBM tokens in the gambling contract. The random number can be between zero and the maximum. Let's assume the maximum is $M$ and the number of participants is $n$ and number of winners is $W$. Also, $\frac{1}{4}$ of the tokens are burnt.
@@ -198,11 +188,22 @@ $
 \frac{3a_i}{16W} - a_i
 $.
 
+\section{Conclusion}
+Gambleswap seeks to unlock the hundreds of millions of dollars in value locked in a decentralized exchange. Up until now, the community has shown great enthusiasm toward gambling and lottery games. The economic dynamics behind Gambleswap's gambling game also incentivizes people to provide even more liquidity.
 
-\section{Source}
-the source code and wirefram can be found here:
-\href{https://github.com/Gambleswap}{https://github.com/Gambleswap}
+\pagebreak
+\appendix
+\label{app:amm}
+\section{Automated Market Maker}
+As mentioned before there are two tokens in each liquidity pool in an AMM-based exchange. The ratio between the amount of one token a user takes out and the amount of the other token the user endows, are calculated using a constant product equation. 
+Assume the amounts of the tokens are $R_a$ and $R_b$ before the swap. A user can deposit $x$ tokens of $R_a$ in the pool and take $y$ tokens of $R_b$ out. 
+A small portion of $x$ is taken as a fee. This fee is divided between all liquidity providers proportional to their share in the pool. The fee ratio is shown by $\mu$. Now, because the product of the two tokens amounts should remain equal to $k$, we can calculate $y$ like this:
 
-
+\begin{align*}
+    R_a R_b &= (R_a + (1 - \mu)x)(R_b - y) \\
+    \to (1 - \mu)xR_b &= (1 - \mu)xy + yR_1 \\
+    \to y &= R_b - \frac{R_aR_b}{R_a + (1 - \mu)x}
+\end{align*}
 
 \end{document}
+
